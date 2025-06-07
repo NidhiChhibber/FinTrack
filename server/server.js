@@ -1,37 +1,78 @@
 // server.js
 import express from 'express';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import { errorHandler, notFoundHandler } from './src/middleware/error.middleware.js';
+
+// Import route files
 import transactionRoutes from './routes/api/transaction/transaction.js';
 import plaidRoutes from './routes/api/plaid/plaid.js';
-import retrainRoute from './routes/api/ml/retrain-model.js'
+import db from './models/index.js'
 
-import { sequelize } from './models/index.js';
+
+// Load environment variables
+dotenv.config();
 
 const app = express();
-app.use(express.json()); // Middleware to parse JSON
+const PORT = process.env.PORT || 3001;
 
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-await sequelize.sync();
+// Request logging (simple)
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
 
-// Serve static files from the Angular app
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-app.use(express.static(path.join(__dirname, '../client/dist/client')));
-
-// Import routes
+// API Routes
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/plaid', plaidRoutes);
-app.use('/api/ml', retrainRoute);
 
+// 404 handler for unknown routes
+app.use(notFoundHandler);
 
-// The "catchall" handler: for any request that doesn't match an API route, send back Angular's index.html file.
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/dist/client', 'index.html'));
-});
+// Global error handler (must be last)
+app.use(errorHandler);
 
-const PORT = process.env.PORT || 3000;
+try {
+  await db.sequelize.sync({ force: true }); // Use force: true to recreate tables
+  console.log('Database synced successfully');
+} catch (error) {
+  console.error('Database sync failed:', error);
+}
+
+// Start server
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+  
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`🏦 Plaid Environment: ${process.env.PLAID_ENV || 'sandbox'}`);
+  }
 });
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully...');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully...');
+  process.exit(0);
+});
+
+export default app;

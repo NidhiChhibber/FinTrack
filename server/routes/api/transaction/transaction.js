@@ -1,99 +1,26 @@
+// routes/api/transaction/transaction.js
 import express from 'express';
-import {
-  getAllTransactions,
-  getTransactionByPlaidId,
-  createTransaction,
-  updateTransaction,
-  updateTransactionCategoryByPlaidId,
-  deleteTransactionByPlaidId,
-} from '../../../services/transaction.service.js';
-import { Op } from 'sequelize';
+import { TransactionController } from '../../../src/controllers/TransactionController.js';
 
 const router = express.Router();
+const transactionController = new TransactionController();
 
-// GET /api/transactions - get all transactions
-router.get('/', async (req, res) => {
-  try {
-    const { startDate, endDate } = req.query;
+// GET /api/transactions - get all transactions with filters
+router.get('/', transactionController.getAllTransactions);
 
-    const whereClause = {};
-    if (startDate) {
-      whereClause.date = { [Op.gte]: new Date(startDate) };
-    }
-    if (endDate) {
-      whereClause.date = {
-        ...(whereClause.date || {}),
-        [Op.lte]: new Date(endDate),
-      };
-    }
+// GET /api/transactions/by-plaid-id/:plaidId - get transaction by Plaid ID
+router.get('/by-plaid-id/:plaidId', transactionController.getTransactionByPlaidId);
 
-    const transactions = await getAllTransactions(whereClause);
-    res.json(transactions);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Failed to fetch transactions');
-  }
-});
+// POST /api/transactions - create new transaction
+router.post('/', transactionController.createTransaction);
 
-// GET /api/transactions/by-plaid-id/:plaidId
-router.get('/by-plaid-id/:plaidId', async (req, res) => {
-  try {
-    const transaction = await getTransactionByPlaidId(req.params.plaidId);
-    if (!transaction) return res.status(404).send('Transaction not found');
-    res.json(transaction);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Error fetching transaction');
-  }
-});
+// PUT /api/transactions/:id - update transaction
+router.put('/:id', transactionController.updateTransaction);
 
-// POST /api/transactions
-router.post('/', async (req, res) => {
-  try {
-    const newTransaction = await createTransaction(req.body);
-    res.status(201).json(newTransaction);
-  } catch (err) {
-    console.error(err);
-    res.status(400).send('Error creating transaction');
-  }
-});
+// PUT /api/transactions/by-plaid-id/:plaidId - update transaction category
+router.put('/by-plaid-id/:plaidId', transactionController.updateTransactionCategory);
 
-// PUT /api/transactions/:id
-router.put('/:id', async (req, res) => {
-  try {
-    const updated = await updateTransaction(req.params.id, req.body);
-    res.json(updated);
-  } catch (err) {
-    console.error(err);
-    res.status(400).send('Error updating transaction');
-  }
-});
-
-// PUT /api/transactions/by-plaid-id/:plaidId
-router.put('/by-plaid-id/:plaidId', async (req, res) => {
-  const { plaidId } = req.params;
-  const { category } = req.body;
-
-  try {
-    const updated = await updateTransactionCategoryByPlaidId(plaidId, category);
-    if (!updated) return res.status(404).send('Transaction not found');
-    res.json(updated);
-  } catch (err) {
-    console.error('Failed to update transaction category:', err);
-    res.status(500).send('Failed to update category');
-  }
-});
-
-// DELETE /api/transactions/by-plaid-id/:plaidId
-router.delete('/by-plaid-id/:plaidId', async (req, res) => {
-  try {
-    const deleted = await deleteTransactionByPlaidId(req.params.plaidId);
-    if (!deleted) return res.status(404).send('Transaction not found');
-    res.sendStatus(204);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Error deleting transaction');
-  }
-});
+// DELETE /api/transactions/by-plaid-id/:plaidId - delete transaction
+router.delete('/by-plaid-id/:plaidId', transactionController.deleteTransactionByPlaidId);
 
 export default router;
