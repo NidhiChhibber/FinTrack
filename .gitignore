@@ -1,0 +1,35 @@
+# Node modules
+node_modules/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# # Environment variables
+# .env
+# .env.*.local
+
+# Build output
+dist/
+build/
+.next/
+out/
+
+# SQLite files
+*.sqlite
+*.sqlite-journal
+
+# Coverage/testing
+coverage/
+
+# Vite/React cache
+.vite/
+.cache/
+
+# VS Code settings
+.vscode/
