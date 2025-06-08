@@ -8,6 +8,8 @@ import { errorHandler, notFoundHandler } from './src/middleware/error.middleware
 import transactionRoutes from './routes/api/transaction/transaction.js';
 import plaidRoutes from './routes/api/plaid/plaid.js';
 import db from './models/index.js'
+import mlRoutes from './routes/api/ml/ml.js';
+
 
 
 // Load environment variables
@@ -39,6 +41,8 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/plaid', plaidRoutes);
+app.use('/api/ml', mlRoutes);
+
 
 // 404 handler for unknown routes
 app.use(notFoundHandler);

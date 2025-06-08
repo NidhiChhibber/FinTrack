@@ -1,4 +1,4 @@
-// models/transaction.js
+// models/transaction.js - Updated with ML fields
 export default (sequelize, DataTypes) => {
   return sequelize.define(
     'transaction',
@@ -31,7 +31,7 @@ export default (sequelize, DataTypes) => {
       },
       account_subtype: DataTypes.STRING,
       
-      // Categorization metadata
+      // Categorization metadata - UPDATED
       category_corrected: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
@@ -40,11 +40,13 @@ export default (sequelize, DataTypes) => {
       category_source: {
         type: DataTypes.ENUM,
         values: ['plaid', 'user', 'ai', 'rule'],
-        defaultValue: 'plaid'
+        defaultValue: 'plaid',
+        comment: 'Source of the category assignment'
       },
       confidence: {
         type: DataTypes.FLOAT,
-        defaultValue: 0.8
+        defaultValue: 0.8,
+        comment: 'Confidence score for category prediction (0-1)'
       },
       
       // Additional fields

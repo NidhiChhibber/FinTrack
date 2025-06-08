@@ -1,4 +1,4 @@
-// src/controllers/TransactionController.js
+// src/controllers/TransactionController.js - Fixed async syntax
 import { TransactionService } from '../services/TransactionService.js';
 
 export class TransactionController {
@@ -6,17 +6,15 @@ export class TransactionController {
     this.transactionService = new TransactionService();
   }
 
-   /**
+  /**
    * Get all transactions with filters
-   * @param {Object} req - Express request
-   * @param {Object} res - Express response
    */
   getAllTransactions = async (req, res) => {
     try {
       console.log('GET /api/transactions called with query:', req.query);
       
       const { startDate, endDate, page = 1, limit = 50, ...otherFilters } = req.query;
-      const userId = req.user?.id || 'custom_dnc_user'; // Use consistent default user
+      const userId = req.user?.id || 'custom_dnc_user';
       
       console.log('Using userId:', userId);
 
@@ -24,7 +22,6 @@ export class TransactionController {
       if (startDate) filters.startDate = startDate;
       if (endDate) filters.endDate = endDate;
       
-      // Add other filters
       Object.keys(otherFilters).forEach(key => {
         if (otherFilters[key]) filters[key] = otherFilters[key];
       });
@@ -66,8 +63,6 @@ export class TransactionController {
   
   /**
    * Get transaction by Plaid ID
-   * @param {Object} req - Express request
-   * @param {Object} res - Express response
    */
   getTransactionByPlaidId = async (req, res) => {
     try {
@@ -96,8 +91,6 @@ export class TransactionController {
 
   /**
    * Create new transaction
-   * @param {Object} req - Express request
-   * @param {Object} res - Express response
    */
   createTransaction = async (req, res) => {
     try {
@@ -119,8 +112,6 @@ export class TransactionController {
 
   /**
    * Update transaction
-   * @param {Object} req - Express request
-   * @param {Object} res - Express response
    */
   updateTransaction = async (req, res) => {
     try {
@@ -151,8 +142,6 @@ export class TransactionController {
 
   /**
    * Update transaction category by Plaid ID
-   * @param {Object} req - Express request
-   * @param {Object} res - Express response
    */
   updateTransactionCategory = async (req, res) => {
     try {
@@ -198,8 +187,6 @@ export class TransactionController {
 
   /**
    * Delete transaction by Plaid ID
-   * @param {Object} req - Express request
-   * @param {Object} res - Express response
    */
   deleteTransactionByPlaidId = async (req, res) => {
     try {
