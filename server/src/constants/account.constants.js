@@ -1,3 +1,5 @@
+import { AccountType } from '../enums/index.js';
+
 export const ACCOUNT_CONSTANTS = Object.freeze({
   VALIDATION: {
     MAX_NAME_LENGTH: 100,

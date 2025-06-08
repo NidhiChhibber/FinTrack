@@ -1,5 +1,5 @@
-// src/controllers/PlaidController.js
 import { PlaidService } from '../services/PlaidService.js';
+import { AccountMapper, PlaidItemMapper } from '../mappers/index.js';
 
 export class PlaidController {
   constructor() {
@@ -18,7 +18,11 @@ export class PlaidController {
 
       res.json({
         success: true,
-        data: linkToken
+        data: {
+          linkToken: linkToken.link_token,
+          expiration: linkToken.expiration,
+          requestId: linkToken.request_id
+        }
       });
     } catch (error) {
       console.error('Error creating link token:', error);
@@ -36,10 +40,10 @@ export class PlaidController {
    */
   exchangePublicToken = async (req, res) => {
     try {
-      const { public_token, metadata } = req.body;
+      const { publicToken, metadata } = req.body; // Note: camelCase from client
       const userId = req.user?.id || 'user-id'; // TODO: Get from auth middleware
 
-      if (!public_token) {
+      if (!publicToken) {
         return res.status(400).json({
           success: false,
           error: 'Public token is required'
@@ -47,7 +51,7 @@ export class PlaidController {
       }
 
       const result = await this.plaidService.exchangePublicToken(
-        public_token, 
+        publicToken, 
         metadata, 
         userId
       );
@@ -63,9 +67,10 @@ export class PlaidController {
       res.json({
         success: true,
         data: {
-          item_id: result.plaidItem.item_id,
-          accounts_linked: result.accountCount,
-          institution: metadata?.institution?.name
+          itemId: result.plaidItem.item_id,
+          accountsLinked: result.accountCount,
+          institution: metadata?.institution?.name,
+          accounts: AccountMapper.toDTOArray(result.accounts || [])
         }
       });
     } catch (error) {
@@ -87,9 +92,15 @@ export class PlaidController {
       const userId = req.params.userId || req.user?.id || 'user-id';
       const accounts = await this.plaidService.getAccountsByUser(userId);
 
+      const accountDTOs = AccountMapper.toDTOArray(accounts);
+
       res.json({
         success: true,
-        data: accounts
+        data: accountDTOs,
+        meta: {
+          totalAccounts: accountDTOs.length,
+          activeAccounts: accountDTOs.filter(acc => acc.isActive).length
+        }
       });
     } catch (error) {
       console.error('Error fetching accounts:', error);
@@ -107,23 +118,24 @@ export class PlaidController {
    */
   syncTransactions = async (req, res) => {
     try {
-      const { user_id } = req.body;
-      const userId = user_id || req.user?.id || 'user-id';
+      const { userId } = req.body; // Note: camelCase from client
+      const finalUserId = userId || req.user?.id || 'user-id';
 
-      if (!userId) {
+      if (!finalUserId) {
         return res.status(400).json({
           success: false,
           error: 'User ID is required'
         });
       }
 
-      const newTransactions = await this.plaidService.syncUserTransactions(userId);
+      const newTransactions = await this.plaidService.syncUserTransactions(finalUserId);
+      const transactionDTOs = TransactionMapper.toDTOArray(newTransactions);
 
       res.json({
         success: true,
         data: {
-          transactions_synced: newTransactions.length,
-          transactions: newTransactions
+          transactionsSynced: transactionDTOs.length,
+          transactions: transactionDTOs
         }
       });
     } catch (error) {
@@ -149,10 +161,11 @@ export class PlaidController {
       res.json({
         success: true,
         data: {
-          item_id: result.plaidItem.item_id,
-          accounts_linked: result.accountCount,
+          itemId: result.plaidItem.item_id,
+          accountsLinked: result.accountCount,
           institution: 'Platypus Bank (Sandbox)',
-          message: 'Sandbox connection created successfully'
+          message: 'Sandbox connection created successfully',
+          accounts: AccountMapper.toDTOArray(result.accounts || [])
         }
       });
     } catch (error) {

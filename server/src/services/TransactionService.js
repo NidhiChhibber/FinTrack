@@ -1,7 +1,7 @@
-// src/services/TransactionService.js
 import { TransactionRepository } from '../repositories/TransactionRepository.js';
 import { AccountRepository } from '../repositories/AccountRepository.js';
 import { TransactionType, AccountType } from '../enums/index.js';
+import { TransactionMapper } from '../mappers/TransactionMapper.js';
 
 export class TransactionService {
   constructor() {
@@ -10,29 +10,31 @@ export class TransactionService {
   }
 
   /**
-   * Get transactions for user with pagination
+   * Get transactions for user with pagination (returns DTOs)
    * @param {string} userId - User ID
    * @param {Object} filters - Filter options
    * @param {Object} pagination - Pagination options
-   * @returns {Promise<Object>} Transactions with pagination
+   * @returns {Promise<TransactionDTO[]>} Transaction DTOs
    */
   async getTransactionsByUser(userId, filters = {}, pagination = {}) {
-    return await this.transactionRepo.findByUser(userId, filters, pagination);
+    const transactions = await this.transactionRepo.findByUser(userId, filters, pagination);
+    return TransactionMapper.toDTOArray(transactions);
   }
 
   /**
-   * Get transaction by Plaid ID
+   * Get transaction by Plaid ID (returns DTO)
    * @param {string} plaidId - Plaid transaction ID
-   * @returns {Promise<Object|null>} Transaction or null
+   * @returns {Promise<TransactionDTO|null>} Transaction DTO or null
    */
   async getTransactionByPlaidId(plaidId) {
-    return await this.transactionRepo.findByPlaidId(plaidId);
+    const transaction = await this.transactionRepo.findByPlaidId(plaidId);
+    return TransactionMapper.toDTO(transaction);
   }
 
   /**
-   * Create new transaction
-   * @param {Object} transactionData - Transaction data
-   * @returns {Promise<Object>} Created transaction
+   * Create new transaction from DTO
+   * @param {Object} transactionData - Transaction data (snake_case from mapper)
+   * @returns {Promise<TransactionDTO>} Created transaction DTO
    */
   async createTransaction(transactionData) {
     // Add enhanced data if not provided
@@ -51,14 +53,20 @@ export class TransactionService {
       );
     }
 
-    return await this.transactionRepo.create(transactionData);
+    // Set defaults
+    transactionData.category_source = transactionData.category_source || 'user';
+    transactionData.category_corrected = transactionData.category_corrected || true;
+    transactionData.confidence = transactionData.confidence || 0.8;
+
+    const transaction = await this.transactionRepo.create(transactionData);
+    return TransactionMapper.toDTO(transaction);
   }
 
   /**
-   * Update transaction
+   * Update transaction by ID (returns DTO)
    * @param {number} id - Transaction ID
-   * @param {Object} updateData - Update data
-   * @returns {Promise<Object|null>} Updated transaction
+   * @param {Object} updateData - Update data (snake_case from mapper)
+   * @returns {Promise<TransactionDTO|null>} Updated transaction DTO
    */
   async updateTransaction(id, updateData) {
     // Mark as user corrected if category is being updated
@@ -67,21 +75,23 @@ export class TransactionService {
       updateData.category_source = 'user';
     }
 
-    return await this.transactionRepo.update(id, updateData);
+    const transaction = await this.transactionRepo.update(id, updateData);
+    return TransactionMapper.toDTO(transaction);
   }
 
   /**
-   * Update transaction category by Plaid ID
+   * Update transaction category by Plaid ID (returns DTO)
    * @param {string} plaidId - Plaid transaction ID
-   * @param {Object} updates - Update data
-   * @returns {Promise<Object|null>} Updated transaction
+   * @param {Object} updates - Update data (snake_case)
+   * @returns {Promise<TransactionDTO|null>} Updated transaction DTO
    */
   async updateTransactionCategoryByPlaidId(plaidId, updates) {
     updates.category_corrected = true;
     updates.category_source = 'user';
     updates.updatedAt = new Date();
 
-    return await this.transactionRepo.updateByPlaidId(plaidId, updates);
+    const transaction = await this.transactionRepo.updateByPlaidId(plaidId, updates);
+    return TransactionMapper.toDTO(transaction);
   }
 
   /**
@@ -94,10 +104,10 @@ export class TransactionService {
   }
 
   /**
-   * Save or update transactions from Plaid sync
+   * Save or update transactions from Plaid sync (internal use)
    * @param {Array} plaidTransactions - Plaid transaction data
    * @param {Object} plaidItem - Plaid item
-   * @returns {Promise<Array>} Saved transactions
+   * @returns {Promise<Array>} Saved transactions (models, not DTOs)
    */
   async saveOrUpdateTransactions(plaidTransactions, plaidItem) {
     const savedTransactions = [];
@@ -158,7 +168,7 @@ export class TransactionService {
     return savedTransactions;
   }
 
-  // Private helper methods
+  // Private helper methods remain the same...
 
   /**
    * Classify transaction type based on amount and account type

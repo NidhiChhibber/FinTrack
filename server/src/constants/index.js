@@ -1,7 +1,6 @@
 export { TRANSACTION_CONSTANTS } from './transaction.constants.js';
 export { ACCOUNT_CONSTANTS } from './account.constants.js';
 export { PLAID_CONSTANTS } from './plaid.constants.js';
-export { API_CONSTANTS } from './api.constants.js';
 
 // ================================
 // 3. TYPE DEFINITIONS (JS Docs for type safety)

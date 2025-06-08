@@ -1,9 +1,9 @@
-// src/services/PlaidService.js
 import { Configuration, PlaidApi, PlaidEnvironments } from 'plaid';
 import { PlaidItemRepository } from '../repositories/PlaidItemRepository.js';
 import { AccountRepository } from '../repositories/AccountRepository.js';
 import { TransactionService } from './TransactionService.js';
 import { AccountType } from '../enums/index.js';
+import { AccountMapper, TransactionMapper } from '../mappers/index.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -11,10 +11,11 @@ dotenv.config();
 export class PlaidService {
   constructor() {
     console.log('Plaid Config:', {
-    clientId: process.env.PLAID_CLIENT_ID ? 'SET' : 'MISSING',
-    secret: process.env.PLAID_SECRET ? 'SET' : 'MISSING', 
-    env: process.env.PLAID_ENV
-  });
+      clientId: process.env.PLAID_CLIENT_ID ? 'SET' : 'MISSING',
+      secret: process.env.PLAID_SECRET ? 'SET' : 'MISSING', 
+      env: process.env.PLAID_ENV
+    });
+    
     this.plaidClient = new PlaidApi(new Configuration({
       basePath: PlaidEnvironments[process.env.PLAID_ENV || 'sandbox'],
       baseOptions: {
@@ -52,65 +53,64 @@ export class PlaidService {
    * @param {string} publicToken - Public token from Plaid Link
    * @param {Object} metadata - Link metadata
    * @param {string} userId - User ID
-   * @returns {Promise<Object>} Created item and accounts
+   * @returns {Promise<Object>} Created item and accounts (with DTOs)
    */
   async exchangePublicToken(publicToken, metadata, userId) {
-  try {
-    console.log('Exchanging public token...');
-    
-    // Exchange token
-    const tokenResponse = await this.plaidClient.itemPublicTokenExchange({ 
-      public_token: publicToken 
-    });
-    const { access_token, item_id } = tokenResponse.data;
-    console.log('Access token obtained:', !!access_token);
+    try {
+      console.log('Exchanging public token...');
+      
+      // Exchange token
+      const tokenResponse = await this.plaidClient.itemPublicTokenExchange({ 
+        public_token: publicToken 
+      });
+      const { access_token, item_id } = tokenResponse.data;
+      console.log('Access token obtained:', !!access_token);
 
-    // Get accounts
-    console.log('Fetching accounts...');
-    const accountsResponse = await this.plaidClient.accountsGet({ access_token });
-    console.log('Raw accounts response:', JSON.stringify(accountsResponse.data, null, 2));
-    
-    const plaidAccounts = accountsResponse.data.accounts;
-    console.log('Number of accounts returned:', plaidAccounts?.length || 0);
+      // Get accounts
+      console.log('Fetching accounts...');
+      const accountsResponse = await this.plaidClient.accountsGet({ access_token });
+      console.log('Raw accounts response:', JSON.stringify(accountsResponse.data, null, 2));
+      
+      const plaidAccounts = accountsResponse.data.accounts;
+      console.log('Number of accounts returned:', plaidAccounts?.length || 0);
 
-    if (!plaidAccounts || !Array.isArray(plaidAccounts) || plaidAccounts.length === 0) {
-      throw new Error(`No accounts returned from Plaid`);
+      if (!plaidAccounts || !Array.isArray(plaidAccounts) || plaidAccounts.length === 0) {
+        throw new Error(`No accounts returned from Plaid`);
+      }
+
+      // Map account types
+      const enhancedAccounts = plaidAccounts.map(account => ({
+        ...account,
+        account_type: this._mapAccountType(account).accountType,
+        account_subtype: this._mapAccountType(account).accountSubtype
+      }));
+
+      // Create Plaid item with accounts
+      const itemData = {
+        user_id: userId,
+        access_token,
+        item_id,
+        institution_name: metadata?.institution?.name || 'Unknown Institution'
+      };
+
+      const plaidItem = await this.plaidItemRepo.createWithAccounts(itemData, enhancedAccounts);
+
+      return {
+        plaidItem,
+        accounts: enhancedAccounts,
+        accountCount: enhancedAccounts.length
+      };
+      
+    } catch (error) {
+      console.error('Exchange error details:', error.response?.data || error);
+      throw error;
     }
-
-    // Map account types
-    const enhancedAccounts = plaidAccounts.map(account => ({
-      ...account,
-      account_type: this._mapAccountType(account).accountType,
-      account_subtype: this._mapAccountType(account).accountSubtype
-    }));
-
-    // Create Plaid item with accounts
-    const itemData = {
-      user_id: userId,
-      access_token,
-      item_id,
-      institution_name: metadata?.institution?.name || 'Unknown Institution'
-    };
-
-    const plaidItem = await this.plaidItemRepo.createWithAccounts(itemData, enhancedAccounts);
-
-    // ADD THIS RETURN STATEMENT:
-    return {
-      plaidItem,
-      accounts: enhancedAccounts,
-      accountCount: enhancedAccounts.length
-    };
-    
-  } catch (error) {
-    console.error('Exchange error details:', error.response?.data || error);
-    throw error;
   }
-}
 
   /**
-   * Sync transactions for a user
+   * Sync transactions for a user (returns DTOs)
    * @param {string} userId - User ID
-   * @returns {Promise<Array>} New transactions
+   * @returns {Promise<TransactionDTO[]>} New transaction DTOs
    */
   async syncUserTransactions(userId) {
     const plaidItem = await this.plaidItemRepo.findByUser(userId);
@@ -133,7 +133,9 @@ export class PlaidService {
           added, 
           plaidItem
         );
-        allNewTransactions.push(...savedTransactions);
+        // Convert to DTOs
+        const transactionDTOs = TransactionMapper.toDTOArray(savedTransactions);
+        allNewTransactions.push(...transactionDTOs);
       }
 
       cursor = next_cursor;
@@ -147,10 +149,10 @@ export class PlaidService {
   }
 
   /**
-   * Get initial transactions (for new connections)
+   * Get initial transactions (for new connections) - returns DTOs
    * @param {string} accessToken - Access token
    * @param {string} userId - User ID
-   * @returns {Promise<Array>} Initial transactions
+   * @returns {Promise<TransactionDTO[]>} Initial transaction DTOs
    */
   async getInitialTransactions(accessToken, userId) {
     const plaidItem = await this.plaidItemRepo.findByAccessToken(accessToken);
@@ -179,7 +181,9 @@ export class PlaidService {
           newTransactions, 
           plaidItem
         );
-        transactions.push(...savedTransactions);
+        // Convert to DTOs
+        const transactionDTOs = TransactionMapper.toDTOArray(savedTransactions);
+        transactions.push(...transactionDTOs);
       }
 
       offset += newTransactions.length;
@@ -191,12 +195,13 @@ export class PlaidService {
   }
 
   /**
-   * Get accounts for user
+   * Get accounts for user (returns DTOs)
    * @param {string} userId - User ID
-   * @returns {Promise<Array>} User accounts
+   * @returns {Promise<AccountDTO[]>} User account DTOs
    */
   async getAccountsByUser(userId) {
-    return await this.accountRepo.findByUser(userId);
+    const accounts = await this.accountRepo.findByUser(userId);
+    return AccountMapper.toDTOArray(accounts);
   }
 
   /**
@@ -205,43 +210,43 @@ export class PlaidService {
    * @returns {Promise<Object>} Sandbox connection result
    */
   async createSandboxConnection(userId) {
-  try {
-    console.log('Creating sandbox connection for user:', userId);
-    
-    // Create sandbox public token
-    const sandboxResponse = await this.plaidClient.sandboxPublicTokenCreate({
-      institution_id: 'ins_109508', // Platypus Bank
-      initial_products: ['transactions'],
-      options: {
-        override_username: userId,
-      },
-    });
-    
-    console.log('Sandbox public token created:', !!sandboxResponse.data.public_token);
-    
-    // Exchange for access token and create item
-    const result = await this.exchangePublicToken(
-      sandboxResponse.data.public_token,
-      { institution: { name: 'Platypus Bank (Sandbox)' } },
-      userId
-    );
-    
-    console.log('Exchange result:', result);
-    
-    // Sync initial transactions after a short delay
-    setTimeout(() => {
-      this.syncUserTransactions(userId).catch(console.error);
-    }, 3000);
+    try {
+      console.log('Creating sandbox connection for user:', userId);
+      
+      // Create sandbox public token
+      const sandboxResponse = await this.plaidClient.sandboxPublicTokenCreate({
+        institution_id: 'ins_109508', // Platypus Bank
+        initial_products: ['transactions'],
+        options: {
+          override_username: userId,
+        },
+      });
+      
+      console.log('Sandbox public token created:', !!sandboxResponse.data.public_token);
+      
+      // Exchange for access token and create item
+      const result = await this.exchangePublicToken(
+        sandboxResponse.data.public_token,
+        { institution: { name: 'Platypus Bank (Sandbox)' } },
+        userId
+      );
+      
+      console.log('Exchange result:', result);
+      
+      // Sync initial transactions after a short delay
+      setTimeout(() => {
+        this.syncUserTransactions(userId).catch(console.error);
+      }, 3000);
 
-    return result;
-    
-  } catch (error) {
-    console.error('Detailed sandbox error:', error.response?.data || error.message);
-    throw error;
+      return result;
+      
+    } catch (error) {
+      console.error('Detailed sandbox error:', error.response?.data || error.message);
+      throw error;
+    }
   }
-}
 
-  // Private helper methods
+  // Private helper methods remain the same...
 
   /**
    * Call Plaid transactions sync API
