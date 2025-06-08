@@ -1,4 +1,4 @@
-// src/repositories/AccountRepository.js
+// server/src/repositories/AccountRepository.js
 import db from '../../models/index.js'
 import { BaseRepository } from './BaseRepository.js';
 
@@ -10,13 +10,14 @@ export class AccountRepository extends BaseRepository {
   /**
    * Find accounts by user ID
    * @param {string} userId - User ID
-   * @returns {Promise<Array>} Array of accounts
+   * @returns {Promise<Array>} Array of accounts with PlaidItem included
    */
   async findByUser(userId) {
     return await this.findAll({
       include: [{
         model: db.PlaidItem,
-        where: { user_id: userId }
+        where: { user_id: userId },
+        attributes: ['id', 'institution_name', 'item_id'] // Include institution_name
       }],
       order: [['name', 'ASC']]
     });
@@ -31,7 +32,11 @@ export class AccountRepository extends BaseRepository {
     if (!plaidAccountId) return null;
 
     return await this.findOne({
-      where: { account_id: plaidAccountId }
+      where: { account_id: plaidAccountId },
+      include: [{
+        model: db.PlaidItem,
+        attributes: ['id', 'institution_name', 'item_id']
+      }]
     });
   }
 
@@ -42,7 +47,11 @@ export class AccountRepository extends BaseRepository {
    */
   async findByPlaidItem(plaidItemId) {
     return await this.findAll({
-      where: { plaid_item_id: plaidItemId }
+      where: { plaid_item_id: plaidItemId },
+      include: [{
+        model: db.PlaidItem,
+        attributes: ['id', 'institution_name', 'item_id']
+      }]
     });
   }
 

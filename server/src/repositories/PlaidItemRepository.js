@@ -63,27 +63,41 @@ export class PlaidItemRepository extends BaseRepository {
    * @returns {Promise<Object>} Created item
    */
   async createWithAccounts(itemData, accountsData) {
-    const transaction = await db.sequelize.transaction();
+  const transaction = await db.sequelize.transaction();
 
-    try {
-      // Create the Plaid item
-      const item = await this.create(itemData);
+  try {
+    console.log('Creating Plaid item with transaction...');
+    
+    // Create the Plaid item
+    const item = await this.model.create(itemData, { transaction });
+    console.log('Created Plaid item:', item.id);
 
-      // Create associated accounts
-      if (accountsData && accountsData.length > 0) {
-        const accountsWithItemId = accountsData.map(account => ({
-          ...account,
-          plaid_item_id: item.id
-        }));
+    // Create associated accounts
+    if (accountsData && accountsData.length > 0) {
+      const accountsWithItemId = accountsData.map(account => ({
+        ...account,
+        plaid_item_id: item.id
+      }));
 
-        await db.PlaidAccount.bulkCreate(accountsWithItemId, { transaction });
-      }
-
-      await transaction.commit();
-      return item;
-    } catch (error) {
-      await transaction.rollback();
-      throw error;
+      console.log('Creating accounts:', accountsWithItemId.length);
+      const createdAccounts = await db.PlaidAccount.bulkCreate(
+        accountsWithItemId, 
+        { 
+          transaction,
+          returning: true // Ensure we get the created records
+        }
+      );
+      console.log('Created accounts in transaction:', createdAccounts.length);
     }
+
+    await transaction.commit();
+    console.log('Transaction committed successfully');
+    return item;
+    
+  } catch (error) {
+    console.error('Error in createWithAccounts:', error);
+    await transaction.rollback();
+    throw error;
+  }
   }
 }

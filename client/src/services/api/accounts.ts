@@ -1,3 +1,4 @@
+// client/src/services/api/accounts.ts
 import { apiClient } from './client';
 import type { Account } from '../../types';
 
@@ -26,7 +27,16 @@ export const accountsService = {
    */
   async getAccounts(userId: string = 'user-id'): Promise<Account[]> {
     const response = await apiClient.get<AccountsResponse>(`/api/plaid/accounts/${userId}`);
-    return response.data.data || [];
+    
+    // Transform the response to match frontend expectations
+    const accounts = response.data.data || [];
+    return accounts.map(account => ({
+      ...account,
+      // Map accountId to plaidAccountId for backwards compatibility
+      plaidAccountId: account.accountId,
+      // Add institutionName from plaidItem (will need server support)
+      institutionName: account.institutionName || 'Unknown Institution'
+    }));
   },
 
   /**
@@ -50,15 +60,15 @@ export const accountsService = {
         const balance = account.balance || 0;
         
         // Calculate assets vs liabilities
-        if (['checking', 'savings', 'investment'].includes(account.type)) {
+        if (['checking', 'savings', 'investment'].includes(account.accountType)) {
           totalAssets += balance;
-        } else if (['credit', 'loan'].includes(account.type)) {
+        } else if (['credit', 'loan'].includes(account.accountType)) {
           totalLiabilities += Math.abs(balance);
         }
 
         // Sum by account type
-        if (account.type in byType) {
-          byType[account.type as keyof typeof byType] += balance;
+        if (account.accountType in byType) {
+          byType[account.accountType as keyof typeof byType] += balance;
         }
       });
 
@@ -80,7 +90,7 @@ export const accountsService = {
    */
   async refreshAccounts(userId: string = 'user-id'): Promise<{ message: string }> {
     const response = await apiClient.post('/api/plaid/sync_transactions', {
-      user_id: userId
+      userId // Send as camelCase to match DTO
     });
     return response.data;
   },

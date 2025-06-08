@@ -1,3 +1,4 @@
+// server/src/controllers/PlaidController.js
 import { PlaidService } from '../services/PlaidService.js';
 import { AccountMapper, PlaidItemMapper } from '../mappers/index.js';
 
@@ -92,7 +93,15 @@ export class PlaidController {
       const userId = req.params.userId || req.user?.id || 'user-id';
       const accounts = await this.plaidService.getAccountsByUser(userId);
 
-      const accountDTOs = AccountMapper.toDTOArray(accounts);
+      // Convert to DTOs and add institution names
+      const accountDTOs = accounts.map(account => {
+        const dto = AccountMapper.toDTO(account);
+        // Add institution name from the PlaidItem relationship
+        if (account.plaid_item) {
+          dto.institutionName = account.plaid_item.institution_name;
+        }
+        return dto;
+      });
 
       res.json({
         success: true,
@@ -129,13 +138,12 @@ export class PlaidController {
       }
 
       const newTransactions = await this.plaidService.syncUserTransactions(finalUserId);
-      const transactionDTOs = TransactionMapper.toDTOArray(newTransactions);
 
       res.json({
         success: true,
         data: {
-          transactionsSynced: transactionDTOs.length,
-          transactions: transactionDTOs
+          transactionsSynced: newTransactions.length,
+          transactions: newTransactions
         }
       });
     } catch (error) {

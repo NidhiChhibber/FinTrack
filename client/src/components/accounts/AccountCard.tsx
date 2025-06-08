@@ -40,8 +40,8 @@ export const AccountCard: React.FC<AccountCardProps> = ({ account, onClick }) =>
     }
   };
 
-  const Icon = getAccountIcon(account.type);
-  const colorClass = getAccountColor(account.type);
+  const Icon = getAccountIcon(account.accountType);
+  const colorClass = getAccountColor(account.accountType);
 
   return (
     <div 
@@ -60,13 +60,13 @@ export const AccountCard: React.FC<AccountCardProps> = ({ account, onClick }) =>
               {account.displayName || account.name}
             </h3>
             <p className="text-sm text-muted-foreground">
-              {account.institutionName} • {account.type} • ****{account.plaidAccountId.slice(-4)}
+              {account.institutionName} • {account.accountType} • ****{account.accountId.slice(-4)}
             </p>
           </div>
         </div>
         <div className="text-right">
           <div className={`text-xl font-bold ${
-            account.type === 'credit' && account.balance < 0 ? 'text-red-600' : ''
+            account.accountType === 'credit' && account.balance < 0 ? 'text-red-600' : ''
           }`}>
             {formatCurrency(account.balance)}
           </div>
@@ -75,7 +75,7 @@ export const AccountCard: React.FC<AccountCardProps> = ({ account, onClick }) =>
               {formatCurrency(account.availableBalance)} available
             </div>
           )}
-          {account.creditLimit && account.type === 'credit' && (
+          {account.creditLimit && account.accountType === 'credit' && (
             <div className="text-sm text-muted-foreground">
               {formatCurrency(account.creditLimit - Math.abs(account.balance))} available
             </div>

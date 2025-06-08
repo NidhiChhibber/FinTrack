@@ -8,32 +8,61 @@ export class TransactionRepository extends BaseRepository {
     super(db.Transaction);
   }
 
+ 
   /**
    * Find transactions by user ID
    * @param {string} userId - User ID
    * @param {Object} filters - Filter options
+   * @param {Object} pagination - Pagination options
    * @returns {Promise<Array>} Array of transactions
    */
-  async findByUser(userId, filters = {}) {
-    const userAccountIds = await this._getUserAccountIds(userId);
-    if (userAccountIds.length === 0) return [];
+  async findByUser(userId, filters = {}, pagination = {}) {
+    console.log('TransactionRepository.findByUser called with:', { userId, filters, pagination });
+    
+    try {
+      const userAccountIds = await this._getUserAccountIds(userId);
+      console.log('Found user account IDs:', userAccountIds);
+      
+      if (userAccountIds.length === 0) {
+        console.log('No accounts found for user:', userId);
+        return [];
+      }
 
-    const whereClause = {
-      plaid_account_id: { [Op.in]: userAccountIds },
-      ...this._buildDateFilter(filters)
-    };
+      const whereClause = {
+        plaid_account_id: { [Op.in]: userAccountIds },
+        ...this._buildDateFilter(filters)
+      };
 
-    return await this.findAll({
-      where: whereClause,
-      include: [{
-        model: db.PlaidAccount,
-        as: 'Account',
-        attributes: ['id', 'name', 'account_type']
-      }],
-      order: [['date', 'DESC']]
-    });
+      console.log('Where clause:', whereClause);
+
+      const queryOptions = {
+        where: whereClause,
+        include: [{
+          model: db.PlaidAccount,
+          as: 'Account',
+          attributes: ['id', 'name', 'account_type', 'account_id'],
+          include: [{
+            model: db.PlaidItem,
+            attributes: ['institution_name']
+          }]
+        }],
+        order: [['date', 'DESC']],
+        ...pagination
+      };
+
+      console.log('Query options:', JSON.stringify(queryOptions, null, 2));
+
+      const transactions = await this.findAll(queryOptions);
+      console.log('Found transactions count:', transactions.length);
+      
+      return transactions;
+    } catch (error) {
+      console.error('Error in findByUser:', error);
+      throw error;
+    }
   }
 
+  
   /**
    * Find transactions by Plaid ID
    * @param {string} plaidId - Plaid transaction ID
@@ -110,6 +139,8 @@ export class TransactionRepository extends BaseRepository {
    * @private
    */
   async _getUserAccountIds(userId) {
+    console.log('Getting account IDs for user:', userId);
+    
     const userAccounts = await db.PlaidAccount.findAll({
       include: [{
         model: db.PlaidItem,
@@ -118,7 +149,9 @@ export class TransactionRepository extends BaseRepository {
       attributes: ['id']
     });
 
-    return userAccounts.map(acc => acc.id);
+    const accountIds = userAccounts.map(acc => acc.id);
+    console.log('Account IDs:', accountIds);
+    return accountIds;
   }
 
   /**

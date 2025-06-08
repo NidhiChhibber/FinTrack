@@ -1,3 +1,4 @@
+// client/src/utils/dateUtils.ts
 import { DATE_RANGES } from '../constants';
 
 export const getDateRange = (range: keyof typeof DATE_RANGES) => {

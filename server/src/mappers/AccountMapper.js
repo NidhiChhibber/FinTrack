@@ -1,3 +1,4 @@
+// server/src/mappers/AccountMapper.js
 export class AccountMapper {
   /**
    * Convert database model to DTO
@@ -26,6 +27,7 @@ export class AccountMapper {
       isActive: account.is_active,
       deactivatedAt: account.deactivated_at,
       plaidItemId: account.plaid_item_id,
+      institutionName: account.plaid_item?.institution_name || 'Unknown Institution',
       createdAt: account.createdAt,
       updatedAt: account.updatedAt
     };

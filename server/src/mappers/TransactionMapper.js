@@ -1,3 +1,5 @@
+// server/src/mappers/TransactionMapper.js
+
 export class TransactionMapper {
   /**
    * Convert database model to DTO
@@ -30,8 +32,13 @@ export class TransactionMapper {
       plaidAccountId: transaction.plaid_account_id,
       createdAt: transaction.createdAt,
       updatedAt: transaction.updatedAt,
-      // Include related account if available
-      account: transaction.Account ? AccountMapper.toDTO(transaction.Account) : null
+      // Include related account if available - simplified to avoid circular dependency
+      account: transaction.Account ? {
+        id: transaction.Account.id,
+        name: transaction.Account.name,
+        accountType: transaction.Account.account_type,
+        accountId: transaction.Account.account_id
+      } : null
     };
   }
 

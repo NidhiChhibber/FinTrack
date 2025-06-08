@@ -6,49 +6,64 @@ export class TransactionController {
     this.transactionService = new TransactionService();
   }
 
-  /**
+   /**
    * Get all transactions with filters
    * @param {Object} req - Express request
    * @param {Object} res - Express response
    */
   getAllTransactions = async (req, res) => {
     try {
-      const { startDate, endDate, page = 1, limit = 50 } = req.query;
-      const userId = req.user?.id || 'user-id'; // TODO: Get from auth middleware
+      console.log('GET /api/transactions called with query:', req.query);
+      
+      const { startDate, endDate, page = 1, limit = 50, ...otherFilters } = req.query;
+      const userId = req.user?.id || 'custom_dnc_user'; // Use consistent default user
+      
+      console.log('Using userId:', userId);
 
       const filters = {};
       if (startDate) filters.startDate = startDate;
       if (endDate) filters.endDate = endDate;
+      
+      // Add other filters
+      Object.keys(otherFilters).forEach(key => {
+        if (otherFilters[key]) filters[key] = otherFilters[key];
+      });
+
+      console.log('Applied filters:', filters);
 
       const pagination = {
         limit: parseInt(limit),
         offset: (parseInt(page) - 1) * parseInt(limit)
       };
 
-      const result = await this.transactionService.getTransactionsByUser(
+      const transactions = await this.transactionService.getTransactionsByUser(
         userId, 
         filters, 
         pagination
       );
 
+      console.log('Found transactions:', transactions.length);
+
       res.json({
         success: true,
-        data: result,
+        data: transactions,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
-          total: result.length
+          total: transactions.length,
+          hasMore: transactions.length === parseInt(limit)
         }
       });
     } catch (error) {
       console.error('Error fetching transactions:', error);
       res.status(500).json({
         success: false,
-        error: 'Failed to fetch transactions'
+        error: 'Failed to fetch transactions',
+        details: error.message
       });
     }
   };
-
+  
   /**
    * Get transaction by Plaid ID
    * @param {Object} req - Express request

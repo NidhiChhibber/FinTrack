@@ -1,3 +1,4 @@
+// client/src/constants/index.ts
 export const TRANSACTION_CATEGORIES = [
   'Groceries',
   'Restaurants',
@@ -68,7 +69,6 @@ export const API_ENDPOINTS = {
   }
 } as const;
 
-// FIXED DATE_RANGES
 export const DATE_RANGES = {
   LAST_7_DAYS: { days: 7, label: 'Last 7 days' },
   LAST_30_DAYS: { days: 30, label: 'Last 30 days' },

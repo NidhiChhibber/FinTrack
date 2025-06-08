@@ -1,7 +1,8 @@
+// client/src/pages/Accounts.tsx
 import React from 'react';
 import { Plus, CreditCard, Landmark, TrendingUp, RefreshCw } from 'lucide-react';
 import { Button } from '../components/ui/button';
-import { useAccounts, useAccountSummary, useRefreshAccounts } from '../hooks/useAccounts';
+import { useAccounts, useAccountSummary, useSyncTransactions } from '../hooks/useAccounts';
 import { AccountSummaryCard } from '../components/accounts/AccountSummaryCard';
 import { AccountCard } from '../components/accounts/AccountCard';
 import { EmptyState } from '../components/common/EmptyState';
@@ -11,10 +12,10 @@ import { PageHeader } from '../components/common/PageHeader';
 export const Accounts: React.FC = () => {
   const { data: accounts, isLoading: accountsLoading, error: accountsError } = useAccounts();
   const { data: summary, isLoading: summaryLoading } = useAccountSummary();
-  const refreshAccounts = useRefreshAccounts();
+  const refreshAccounts = useSyncTransactions();
 
   const handleRefresh = () => {
-    refreshAccounts.mutate('user-id'); // Provide the userId parameter
+    refreshAccounts.mutate('custom_dnc_user'); // Use consistent user ID
   };
 
   const handleAddAccount = () => {
