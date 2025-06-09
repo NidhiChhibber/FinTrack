@@ -2,52 +2,68 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import db from '../../models/index.js'; // Updated path
+import { Op } from 'sequelize';
 
 const { User } = db; // Destructure User from db
 
 export class AuthService {
-  async register({ email, password, name }) {
-    // Check if user exists
-    const existingUser = await User.findOne({ where: { email } });
-    if (existingUser) {
+  // server/src/services/AuthService.js
+async register({ email, password, name, username }) { // Add username parameter
+  // Check if user exists by email OR username
+  const existingUser = await User.findOne({ 
+    where: {
+      [Op.or]: [
+        { email },
+        { username } // Check for username conflicts too
+      ]
+    }
+  });
+  
+  if (existingUser) {
+    if (existingUser.email === email) {
       throw new Error('User with this email already exists');
     }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12);
-
-    // Create user
-    const user = await User.create({
-      email,
-      password: hashedPassword,
-      name,
-      username: email.split('@')[0] // Generate username from email
-    });
-
-    return user;
+    if (existingUser.username === username) {
+      throw new Error('Username is already taken');
+    }
   }
 
-  async login(email, password) {
-    // Find user
-    const user = await User.findOne({ where: { email } });
-    if (!user) {
-      throw new Error('Invalid credentials');
-    }
+  // Hash password
+  const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Check password
-    const isValid = await bcrypt.compare(password, user.password);
-    if (!isValid) {
-      throw new Error('Invalid credentials');
-    }
+  // Create user with the provided username (not generated from email)
+  const user = await User.create({
+    email,
+    password: hashedPassword,
+    name,
+    username // Use the actual username passed in, don't generate it
+  });
 
-    // Update last login
-    await user.update({ lastLoginAt: new Date() });
+  return user;
+}
 
-    // Generate token
-    const token = this.generateToken(user.id);
-
-    return { user, token };
+  // server/src/services/AuthService.js
+async login(username, password) { // Changed parameter from email to username
+  // Find user by username instead of email
+  const user = await User.findOne({ where: { username } });
+  if (!user) {
+    throw new Error('Invalid credentials');
   }
+
+  // Check password
+  const isValid = await bcrypt.compare(password, user.password);
+  if (!isValid) {
+    throw new Error('Invalid credentials');
+  }
+
+  // Update last login
+  await user.update({ lastLoginAt: new Date() });
+
+  // Generate token
+  const token = this.generateToken(user.id);
+
+  return { user, token };
+}
 
   generateToken(userId) {
     return jwt.sign(

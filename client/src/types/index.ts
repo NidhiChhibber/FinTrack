@@ -164,19 +164,6 @@ export interface DateRange {
   endDate: string;
 }
 
-export interface TransactionFilters {
-  startDate?: string;
-  endDate?: string;
-  accountTypes?: string[];
-  transactionTypes?: string[];
-  categories?: string[];
-  minAmount?: number;
-  maxAmount?: number;
-  merchantName?: string;
-  excludeTransfers?: boolean;
-  onlyRecurring?: boolean;
-}
-
 // Form Types
 export interface TransactionCreateRequest {
   name: string;

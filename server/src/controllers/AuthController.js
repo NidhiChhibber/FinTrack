@@ -8,59 +8,68 @@ export class AuthController {
     this.authService = new AuthService();
   }
 
-  register = async (req, res) => {
-    try {
-      console.log("Logging");
-      const { email, password, name } = req.body;
-      
-      const user = await this.authService.register({ email, password, name });
-      const token = this.authService.generateToken(user.id);
-      
-      res.status(201).json({
-        success: true,
-        data: {
-          token,
-          user: {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            avatar: user.avatar
-          }
+  // server/src/controllers/AuthController.js
+register = async (req, res) => {
+  try {
+    const { email, password, name, username } = req.body; // Extract username from request
+    
+    const user = await this.authService.register({ 
+      email, 
+      password, 
+      name, 
+      username // Pass the actual username
+    });
+    
+    const token = this.authService.generateToken(user.id);
+    
+    res.status(201).json({
+      success: true,
+      data: {
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          username: user.username, // Return the actual username
+          avatar: user.avatar
         }
-      });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        error: error.message
-      });
-    }
-  };
+      }
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
 
-  login = async (req, res) => {
-    try {
-      const { email, password } = req.body;
-      
-      const { user, token } = await this.authService.login(email, password);
-      
-      res.json({
-        success: true,
-        data: {
-          token,
-          user: {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            avatar: user.avatar
-          }
+  // server/src/controllers/AuthController.js
+login = async (req, res) => {
+  try {
+    const { username, password } = req.body; // Changed from email to username
+    
+    const { user, token } = await this.authService.login(username, password);
+    
+    res.json({
+      success: true,
+      data: {
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          username: user.username, // Include username in response
+          avatar: user.avatar
         }
-      });
-    } catch (error) {
-      res.status(401).json({
-        success: false,
-        error: error.message
-      });
-    }
-  };
+      }
+    });
+  } catch (error) {
+    res.status(401).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
 
   verify = async (req, res) => {
     try {

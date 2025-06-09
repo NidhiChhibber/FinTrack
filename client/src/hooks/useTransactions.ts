@@ -5,7 +5,7 @@ import type { TransactionDTO, TransactionFilters } from '../types';
 export interface UseTransactionsOptions extends TransactionFilters {
   limit?: number;
   page?: number;
-  accountId?: string; // Add accountId here
+  accountId?: string;
 }
 
 export const useTransactions = (

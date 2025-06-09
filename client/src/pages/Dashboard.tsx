@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useAccounts, useAccountSummary, useSyncTransactions } from '../hooks/useAccounts';
 import { useTransactions } from '../hooks/useTransactions';
+import { useCurrentUser } from '../hooks/useCurrentUser'; // Import our new hook
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { 
   formatCurrency, 
@@ -367,15 +368,15 @@ const AccountBalanceCard: React.FC<AccountBalanceCardProps> = ({ account }) => {
 };
 
 export const Dashboard: React.FC = () => {
-  const userId = 'user-id'; // TODO: Get from auth context
+  const { userId, user } = useCurrentUser(); // Use our new hook to get the real userId
   
   // Get current month date range for transactions
   const currentMonth = {
-    startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+    startDate: new Date(new Date().getFullYear()-1, new Date().getMonth(), 1).toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0]
   };
   
-  // Fetch real data from backend
+  // Fetch real data from backend using the actual userId
   const { data: accounts, isLoading: accountsLoading, error: accountsError } = useAccounts(userId);
   const { data: accountSummary, isLoading: summaryLoading, error: summaryError } = useAccountSummary(userId);
   const { data: transactions, isLoading: transactionsLoading, error: transactionsError } = useTransactions(
@@ -393,15 +394,7 @@ export const Dashboard: React.FC = () => {
   const processedTransactions = transactions || [];
   const monthlyTotals = calculateMonthlyTotals(processedTransactions);
   const categoryBreakdown = calculateCategoryBreakdown(processedTransactions);
-  
-  // Debug logging
-  console.log('Dashboard Debug:', {
-    transactionsCount: processedTransactions.length,
-    sampleTransaction: processedTransactions[0],
-    monthlyTotals,
-    categoryBreakdown,
-    accounts: accounts?.length || 0
-  });
+
   
   // Get recent transactions (last 5)
   const recentTransactions = processedTransactions
@@ -452,7 +445,7 @@ export const Dashboard: React.FC = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-            Financial Overview
+            Welcome back, {user?.username || 'User'}!
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
             {formatDate(new Date())}

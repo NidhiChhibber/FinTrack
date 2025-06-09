@@ -5,6 +5,7 @@ interface User {
   id: string;
   email: string;
   name: string;
+  username: string; // Add username field
   avatar?: string;
 }
 
@@ -12,7 +13,8 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
+  register: (email: string, password: string, name: string, username: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -45,42 +47,76 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const verifyToken = async (token: string) => {
-    try {
-      const response = await fetch('/api/auth/verify', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const userData = await response.json();
-        setUser(userData.user);
-      } else {
-        localStorage.removeItem('auth_token');
-        setToken(null);
-      }
-    } catch (error) {
-      console.error('Token verification failed:', error);
+  console.log("[Auth] Verifying token:", token);
+  try {
+    const response = await fetch('/api/auth/verify', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    console.log("[Auth] Verification response status:", response.status);
+    const data = await response.json();
+    console.log("[Auth] Verification response data:", data);
+
+    if (response.ok && data.user) {
+      setUser(data.user);
+    } else {
       localStorage.removeItem('auth_token');
       setToken(null);
-    } finally {
-      setIsLoading(false);
     }
-  };
+  } catch (error) {
+    console.error('[Auth] Token verification error:', error);
+    localStorage.removeItem('auth_token');
+    setToken(null);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
-  const login = async (email: string, password: string) => {
+
+  const login = async (username: string, password: string) => {
     const response = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ username, password })
     });
 
     if (!response.ok) {
       throw new Error('Login failed');
     }
 
-    const { token, user } = await response.json();
-    localStorage.setItem('auth_token', token);
-    setToken(token);
-    setUser(user);
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.error || 'Login failed');
+    }
+
+    const { token: newToken, user: newUser } = data.data;
+    localStorage.setItem('auth_token', newToken);
+    setToken(newToken);
+    setUser(newUser);
+  };
+
+  const register = async (email: string, password: string, name: string, username: string) => {
+    const response = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, name, username })
+    });
+
+    if (!response.ok) {
+      throw new Error('Registration failed');
+    }
+
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.error || 'Registration failed');
+    }
+
+    const { token: newToken, user: newUser } = data.data;
+    localStorage.setItem('auth_token', newToken);
+    setToken(newToken);
+    setUser(newUser);
   };
 
   const logout = () => {
@@ -89,33 +125,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
+console.log("[AuthProvider] token:", token);
+console.log("[AuthProvider] user:", user);
+console.log("[AuthProvider] isAuthenticated:", !!token && !!user);
+console.log("[AuthProvider] isLoading:", isLoading);
   return (
     <AuthContext.Provider value={{
       user,
       token,
       isLoading,
       login,
+      register,
       logout,
       isAuthenticated: !!token && !!user
     }}>
-      {children}
+      {!isLoading && children}
     </AuthContext.Provider>
   );
-
-  const register = async (username: string, email: string, password: string) => {
-  const response = await fetch('/api/auth/register', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, email, password })
-  });
-
-  if (!response.ok) {
-    throw new Error('Registration failed');
-  }
-
-  const { token, user } = await response.json();
-  localStorage.setItem('auth_token', token);
-  setToken(token);
-  setUser(user);
-};
 };

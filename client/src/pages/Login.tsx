@@ -1,6 +1,6 @@
 // client/src/pages/Login.tsx
 import React, { useState } from 'react';
-import { Eye, EyeOff, Wallet, Mail, Lock, ArrowRight } from 'lucide-react';
+import { Eye, EyeOff, Wallet, User, Lock, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthProvider';
 
@@ -9,7 +9,7 @@ type OAuthProvider = 'google' | 'apple';
 
 const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [email, setEmail] = useState<string>('');
+  const [username, setUsername] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [rememberMe, setRememberMe] = useState<boolean>(false);
@@ -24,7 +24,7 @@ const LoginPage: React.FC = () => {
     setError('');
     
     try {
-      await login(email, password);
+      await login(username, password);
       navigate('/dashboard');
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Login failed');
@@ -193,32 +193,35 @@ const LoginPage: React.FC = () => {
               <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
             </div>
             <div className="relative bg-white dark:bg-gray-900 px-6">
-              <span className="text-gray-500 dark:text-gray-400 font-medium">or continue with email</span>
+              <span className="text-gray-500 dark:text-gray-400 font-medium">or continue with username</span>
             </div>
           </div>
 
           {/* Login Form */}
           <form onSubmit={handleLogin} className="space-y-6">
-            {/* Email Field */}
+            {/* Username Field */}
             <div>
-              <label htmlFor="email" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                Email address
+              <label htmlFor="username" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                Username
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
+                  <User className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
                   className="block w-full pl-12 pr-4 py-4 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-lg"
-                  placeholder="you@example.com"
+                  placeholder="your_username"
                   required
                   disabled={isLoading}
                 />
               </div>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Enter your unique username (no spaces or special characters)
+              </p>
             </div>
 
             {/* Password Field */}
