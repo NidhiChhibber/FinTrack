@@ -1,97 +1,146 @@
-# 💸 FinTrack – Personal Finance Tracker
+# 💸 FinTrack - Personal Finance Tracker
 
-FinTrack is a full-stack personal finance application that helps users track, categorize, and analyze their spending. It integrates with Plaid to sync transactions from real bank accounts and uses machine learning to auto-categorize them.
-
----
+FinTrack is a full-stack personal finance tracker built with **React**, **Node.js**, **SQLite**, and **Plaid**. It allows users to link bank accounts, track income and expenses, categorize transactions (with AI-assisted predictions), and monitor net worth — all in a beautiful, secure, and extensible app.
 
 ## 🚀 Features
 
-* 🔄 Sync bank transactions via [Plaid](https://plaid.com/)
-* 🧠 ML-based auto-categorization of expenses
-* 📝 Manual category editing with feedback loop for model retraining
-* 📆 Filter by date range
-* 📊 Pagination and sorting
-* 🌙 Dark mode with smooth UI using Tailwind + ShadCN
-* 📦 Lightweight backend using Express + Sequelize + SQLite
-
----
+* 🔐 JWT-based authentication with refresh-safe session
+* 🏦 Plaid integration for live bank and transaction data
+* 📊 Dashboard with net worth, account balances, and category breakdown
+* 🧠 ML-powered transaction categorization with feedback loop
+* 🗕️ Advanced transaction filtering (date, category, amount, account, etc.)
+* 💾 SQLite database with Sequelize ORM
+* 🌙 Theme support via context (dark/light/system)
+* ⚙️ Clean modular codebase and reusable hooks
+* 🧪 React Query for API caching and devtools
 
 ## 🧱 Tech Stack
 
-| Frontend     | Backend       | ML             | Other      |
-| ------------ | ------------- | -------------- | ---------- |
-| React + Vite | Node.js       | Python         | SQLite     |
-| Tailwind CSS | Express.js    | scikit-learn   | Plaid API  |
-| ShadCN UI    | Sequelize ORM | CSV retraining | TypeScript |
+* **Frontend**: React + TypeScript + Tailwind + ShadCN UI
+* **Backend**: Node.js + Express + SQLite + Sequelize
+* **Auth**: JWT + React Context
+* **Banking API**: Plaid
+* **ML Layer**: Python (invoked from Node using `child_process`)
+* **Tooling**: Vite, React Query Devtools, VSCode
 
----
+## 📁 Project Structure
 
-## 🛠️ Setup Instructions
+```
+client/
+🔺🔊 components/         # UI components
+🔺🔊 context/            # Theme, Auth, App providers
+🔺🔊 hooks/              # Custom React hooks
+🔺🔊 pages/              # Dashboard, Transactions, etc.
+🔺🔊 services/api/       # API interaction modules
+🔺🔊 styles/             # Tailwind + globals
+🔺🔊 App.tsx             # Main app entry
 
-### 1. Clone the repo
+server/
+🔺🔊 models/             # Sequelize models
+🔺🔊 routes/             # Auth, transactions, plaid APIs
+🔺🔊 ml/                 # Python ML script
+🔺🔊 server.js           # Express server entry
+```
+
+## 🧲 Running Locally
+
+### Prerequisites
+
+* Node.js ≥ 18
+* Python ≥ 3.8
+* SQLite installed (or use file-based DB)
+* Plaid developer (sandbox) credentials
+
+### Setup
+
+1. **Clone the repository**
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/fintrack.git
+git clone https://github.com/yourusername/fintrack.git
 cd fintrack
 ```
 
-### 2. Install dependencies
+2. **Install and run the backend**
 
 ```bash
-# Client
-cd client
+cd server
 npm install
-
-# Server
-cd ../server
-npm install
+npm run dev
 ```
 
-### 3. Set up environment variables
+3. **Install and run the frontend**
 
-Create a `.env` file in `server/` with your Plaid keys:
+```bash
+cd ../client
+npm install
+npm run dev
+```
+
+4. **Environment Variables**
+
+Create a `.env` file in `/server`:
 
 ```env
-PLAID_CLIENT_ID=your_client_id
-PLAID_SECRET=your_secret
-PLAID_ENV=sandbox
+PLAID_CLIENT_ID=your_plaid_client_id
+PLAID_SECRET=your_plaid_sandbox_secret
+JWT_SECRET=your_jwt_secret
 ```
 
----
+## 🔒 Auth Flow
 
-### 4. Run locally
+* On login/register, user receives a JWT token (saved in `localStorage`)
+* App restores auth state on page refresh using `AuthProvider` and `/api/auth/verify`
+* Protected routes use `ProtectedRoute` wrapper to redirect unauthorized users to `/login`
 
-```bash
-# From project root
-npm install concurrently
+## 🧠 Machine Learning (Auto Categorization)
 
-npm run dev
-# This will start both client and server
+* New transactions are categorized using a Python script
+* Users can manually update predicted categories
+* Feedback is stored and can later be used to improve the model
+* Node runs Python using `child_process.exec()`
+
+## 🔌 API Endpoints
+
+| Method | Endpoint                            | Description                       |
+| ------ | ----------------------------------- | --------------------------------- |
+| POST   | `/api/auth/register`                | Register a new user               |
+| POST   | `/api/auth/login`                   | Log in and receive a token        |
+| GET    | `/api/auth/verify`                  | Validate token and get user info  |
+| GET    | `/api/transactions`                 | Fetch user transactions (filters) |
+| PUT    | `/api/transactions/by-plaid-id/:id` | Update transaction category       |
+| POST   | `/api/plaid/sync_transactions`      | Sync latest bank transactions     |
+| GET    | `/api/plaid/accounts/:userId`       | Get linked Plaid accounts         |
+
+## 🚣️ Sample Hook Usage
+
+```ts
+const { data: transactions } = useTransactionsByDateRange(
+  "2024-06-01",
+  "2025-06-08",
+  user.id
+);
 ```
 
----
+## ✅ Roadmap
 
-## 🔁 Machine Learning
+* [x] Plaid bank linking and account sync
+* [x] Transaction filtering by all parameters
+* [x] ML-based auto categorization
+* [x] Category feedback and correction
+* [ ] Monthly budgeting module
+* [ ] Recurring transaction detection
+* [ ] PDF/CSV export
+* [ ] PWA/mobile support
+* [ ] Cloud DB support (PostgreSQL/Supabase)
 
-* The backend includes an ML pipeline to retrain a classifier using corrected categories.
-* Triggers via `/api/ml/retrain-model`
-* Uses CSV export of user-edited data → retrains Python model
+## Screenshots 
+<img width="1511" alt="Screenshot 2025-06-08 at 11 20 08 PM" src="https://github.com/user-attachments/assets/90535073-8c47-431d-8212-181d8a784b03" />
+<img width="1511" alt="Screenshot 2025-06-08 at 10 35 34 PM" src="https://github.com/user-attachments/assets/65a7c0c7-604a-4d0b-9f4f-509a6529692f" />
+<img width="1512" alt="Screenshot 2025-06-08 at 10 35 04 PM" src="https://github.com/user-attachments/assets/50036b0f-d690-4d0c-abad-fa10939837ec" />
+<img width="1075" alt="Screenshot 2025-06-08 at 10 35 12 PM" src="https://github.com/user-attachments/assets/05a2aafd-c261-45cd-a9f8-81a7dab23f2b" />
 
----
+## 👤 Author
 
-## 📷 Screenshots
+Built with by Divy Nidhi Chhibber
 
-| Sync + Table View                 | Editable Categories               |
-| --------------------------------- | --------------------------------- |
-| ![screenshot1](screenshots/1.png) | ![screenshot2](screenshots/2.png) |
-
----
-
-## 📌 Roadmap
-
-
-## 🧑‍💻 Author
-
-Made with ❤️ by Divy
-
----
+> Empowering people to take control of their financial lives.
