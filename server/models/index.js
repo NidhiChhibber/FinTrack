@@ -1,4 +1,4 @@
-// models/index.js
+// models/index.js (updated version)
 import { Sequelize } from 'sequelize';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -27,7 +27,8 @@ const db = {};
 const modelFiles = [
   'transaction.js',
   'plaid-account.js',
-  'plaid-item.js'
+  'plaid-item.js',
+  'user.js'
 ];
 
 // Load all models
@@ -86,9 +87,18 @@ if (db.plaid_item && db.transaction) {
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
 
-// Create aliases for easier access (matching our repository names)
+// Create aliases for easier access
 db.Transaction = db.transaction;
 db.PlaidAccount = db.plaid_account;
 db.PlaidItem = db.plaid_item;
+db.User = db.user || db.users; // Fix the User alias
 
 export default db;
+
+// Also export individual models for easier importing
+export const { 
+  User, 
+  Transaction, 
+  PlaidAccount, 
+  PlaidItem, 
+} = db;
