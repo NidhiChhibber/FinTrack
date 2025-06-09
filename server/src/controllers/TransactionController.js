@@ -1,4 +1,4 @@
-// src/controllers/TransactionController.js - Fixed async syntax
+// server/src/controllers/TransactionController.js - Fixed method names
 import { TransactionService } from '../services/TransactionService.js';
 
 export class TransactionController {
@@ -33,6 +33,7 @@ export class TransactionController {
         offset: (parseInt(page) - 1) * parseInt(limit)
       };
 
+      // Fixed method name - use getTransactionsByUser instead of getTransactionsByUser
       const transactions = await this.transactionService.getTransactionsByUser(
         userId, 
         filters, 

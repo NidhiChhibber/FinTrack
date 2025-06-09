@@ -1,12 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { dashboardService } from '../services/api/dashboard';
-import type { TransactionDTO } from '../types';
+import { transactionsService } from '../services/api/transactions';
+import type { TransactionDTO, TransactionFilters } from '../types';
 
-export interface UseTransactionsOptions {
-  startDate?: string;
-  endDate?: string;
+export interface UseTransactionsOptions extends TransactionFilters {
   limit?: number;
   page?: number;
+  accountId?: string; // Add accountId here
 }
 
 export const useTransactions = (
@@ -15,9 +14,17 @@ export const useTransactions = (
 ) => {
   return useQuery({
     queryKey: ['transactions', userId, options],
-    queryFn: () => dashboardService.getTransactions(userId, options),
+    queryFn: async () => {
+      const { limit = 100, page = 1, accountId, ...filters } = options;
+      
+      // If accountId is provided, add it to filters
+      const finalFilters = accountId ? { ...filters, accountId } : filters;
+      
+      const result = await transactionsService.getTransactions(finalFilters, { limit, page });
+      return result.data; // Return just the data array
+    },
     staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 5 * 60 * 1000, // 5 minutes (was cacheTime in v3)
+    gcTime: 5 * 60 * 1000, // 5 minutes
     enabled: !!userId, // Only run if userId is provided
   });
 };

@@ -1,18 +1,27 @@
-// client/src/services/api/dashboard.ts
-import { ApiClient } from './client';
+// client/src/services/api/dashboard.ts - Fixed API paths
 import type { TransactionDTO, AccountDTO, AccountSummary } from '../../types';
 
 class DashboardService {
-  private client = new ApiClient();
+  private baseURL = 'http://localhost:3001';
 
-  async getTransactions(userId: string): Promise<TransactionDTO[]> {
-    const response = await this.client.get<TransactionDTO[]>(`/transactions`);
-    return Array.isArray(response.data) ? response.data : [];
+  async getTransactions(userId: string, options: any = {}): Promise<TransactionDTO[]> {
+    const params = new URLSearchParams();
+    
+    if (options.startDate) params.append('startDate', options.startDate);
+    if (options.endDate) params.append('endDate', options.endDate);
+    if (options.limit) params.append('limit', options.limit.toString());
+    
+    const response = await fetch(`${this.baseURL}/api/transactions?${params}`);
+    const data = await response.json();
+    
+    return Array.isArray(data.data) ? data.data : [];
   }
 
   async getAccounts(userId: string): Promise<AccountDTO[]> {
-    const response = await this.client.get<AccountDTO[]>(`/plaid/accounts/${userId}`);
-    return Array.isArray(response.data) ? response.data : [];
+    const response = await fetch(`${this.baseURL}/api/plaid/accounts/${userId}`);
+    const data = await response.json();
+    
+    return Array.isArray(data.data) ? data.data : [];
   }
 
   async getAccountSummary(accounts: AccountDTO[]): Promise<AccountSummary> {
@@ -40,8 +49,13 @@ class DashboardService {
   }
 
   async syncTransactions(userId: string) {
-    const response = await this.client.post('/plaid/sync_transactions', { userId });
-    return response.data;
+    const response = await fetch(`${this.baseURL}/api/plaid/sync_transactions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId })
+    });
+    const data = await response.json();
+    return data.data;
   }
 }
 

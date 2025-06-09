@@ -239,3 +239,18 @@ export const TransactionType = {
   REFUND: 'refund',
   FEE: 'fee'
 } as const;
+
+export interface TransactionFilters {
+  startDate?: string;
+  endDate?: string;
+  accountTypes?: string[];
+  transactionTypes?: string[];
+  categories?: string[];
+  minAmount?: number;
+  maxAmount?: number;
+  merchantName?: string;
+  excludeTransfers?: boolean;
+  onlyRecurring?: boolean;
+  accountId?: string; // Add this line
+  search?: string; // Add this too for search functionality
+}

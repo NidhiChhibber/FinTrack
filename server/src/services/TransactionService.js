@@ -1,4 +1,4 @@
-// server/src/services/TransactionService.js - Simple ML integration
+// server/src/services/TransactionService.js - Complete with all required methods
 import { TransactionRepository } from '../repositories/TransactionRepository.js';
 import { AccountRepository } from '../repositories/AccountRepository.js';
 import { MLCategoryService } from './MLCategoryService.js';
@@ -12,7 +12,124 @@ export class TransactionService {
     this.mlService = new MLCategoryService();
   }
 
-  // ... (keep all existing methods as they were)
+  /**
+   * Get transactions for user with pagination (returns DTOs)
+   * @param {string} userId - User ID
+   * @param {Object} filters - Filter options
+   * @param {Object} pagination - Pagination options
+   * @returns {Promise<TransactionDTO[]>} Transaction DTOs
+   */
+  async getTransactionsByUser(userId, filters = {}, pagination = {}) {
+    try {
+      console.log('TransactionService.getTransactionsByUser called with:', { userId, filters, pagination });
+      
+      const transactions = await this.transactionRepo.findByUser(userId, filters, pagination);
+      const transactionDTOs = TransactionMapper.toDTOArray(transactions);
+      
+      console.log('TransactionService returning', transactionDTOs.length, 'transactions');
+      return transactionDTOs;
+    } catch (error) {
+      console.error('Error in TransactionService.getTransactionsByUser:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get transaction by Plaid ID (returns DTO)
+   * @param {string} plaidId - Plaid transaction ID
+   * @returns {Promise<TransactionDTO|null>} Transaction DTO or null
+   */
+  async getTransactionByPlaidId(plaidId) {
+    const transaction = await this.transactionRepo.findByPlaidId(plaidId);
+    return TransactionMapper.toDTO(transaction);
+  }
+
+  /**
+   * Create new transaction from DTO with ML prediction
+   * @param {Object} transactionData - Transaction data (snake_case from mapper)
+   * @returns {Promise<TransactionDTO>} Created transaction DTO
+   */
+  async createTransaction(transactionData) {
+    // Predict category using ML if not provided
+    if (!transactionData.category || transactionData.category === 'Uncategorized') {
+      const prediction = await this.mlService.predictCategory(
+        transactionData.name,
+        transactionData.merchant_name
+      );
+      
+      transactionData.category = prediction.category;
+      transactionData.category_source = prediction.source;
+      transactionData.confidence = prediction.confidence;
+      transactionData.category_corrected = false;
+    }
+
+    // Add enhanced data if not provided
+    if (!transactionData.transaction_type) {
+      transactionData.transaction_type = this._classifyTransactionType(
+        transactionData.amount, 
+        transactionData.account_type
+      );
+    }
+
+    if (!transactionData.normalized_amount) {
+      transactionData.normalized_amount = this._calculateNormalizedAmount(
+        transactionData.amount,
+        transactionData.account_type,
+        transactionData.transaction_type
+      );
+    }
+
+    // Set defaults
+    transactionData.category_source = transactionData.category_source || CategorySource.USER;
+    transactionData.category_corrected = transactionData.category_corrected ?? true;
+    transactionData.confidence = transactionData.confidence || 0.8;
+
+    const transaction = await this.transactionRepo.create(transactionData);
+    return TransactionMapper.toDTO(transaction);
+  }
+
+  /**
+   * Update transaction by ID (returns DTO)
+   * @param {number} id - Transaction ID
+   * @param {Object} updateData - Update data (snake_case from mapper)
+   * @returns {Promise<TransactionDTO|null>} Updated transaction DTO
+   */
+  async updateTransaction(id, updateData) {
+    // Mark as user corrected if category is being updated
+    if (updateData.category) {
+      updateData.category_corrected = true;
+      updateData.category_source = CategorySource.USER;
+      updateData.confidence = 1.0;
+    }
+
+    const transaction = await this.transactionRepo.update(id, updateData);
+    return TransactionMapper.toDTO(transaction);
+  }
+
+  /**
+   * Update transaction category by Plaid ID with ML learning
+   * @param {string} plaidId - Plaid transaction ID
+   * @param {Object} updates - Update data (snake_case)
+   * @returns {Promise<TransactionDTO|null>} Updated transaction DTO
+   */
+  async updateTransactionCategoryByPlaidId(plaidId, updates) {
+    updates.category_corrected = true;
+    updates.category_source = CategorySource.USER;
+    updates.confidence = 1.0;
+    updates.updatedAt = new Date();
+
+    const transaction = await this.transactionRepo.updateByPlaidId(plaidId, updates);
+    return TransactionMapper.toDTO(transaction);
+  }
+
+  /**
+   * Delete transaction by Plaid ID
+   * @param {string} plaidId - Plaid transaction ID
+   * @returns {Promise<boolean>} True if deleted
+   */
+  async deleteTransactionByPlaidId(plaidId) {
+    return await this.transactionRepo.deleteByPlaidId(plaidId);
+  }
 
   /**
    * Save or update transactions from Plaid sync with ML categorization
@@ -111,23 +228,7 @@ export class TransactionService {
     return savedTransactions;
   }
 
-  /**
-   * Update transaction category by Plaid ID
-   * @param {string} plaidId - Plaid transaction ID
-   * @param {Object} updates - Update data (snake_case)
-   * @returns {Promise<TransactionDTO|null>} Updated transaction DTO
-   */
-  async updateTransactionCategoryByPlaidId(plaidId, updates) {
-    updates.category_corrected = true;
-    updates.category_source = CategorySource.USER;
-    updates.confidence = 1.0;
-    updates.updatedAt = new Date();
-
-    const transaction = await this.transactionRepo.updateByPlaidId(plaidId, updates);
-    return TransactionMapper.toDTO(transaction);
-  }
-
-  // ... (keep all other existing methods unchanged)
+  // Private helper methods
 
   /**
    * Classify transaction type based on amount and account type
@@ -137,10 +238,12 @@ export class TransactionService {
    * @private
    */
   _classifyTransactionType(amount, accountType) {
+    // Credit cards
     if (accountType === AccountType.CREDIT) {
       return amount > 0 ? TransactionType.PAYMENT : TransactionType.EXPENSE;
     }
 
+    // Bank accounts
     if (accountType === AccountType.CHECKING || accountType === AccountType.SAVINGS) {
       return amount > 0 ? TransactionType.INCOME : TransactionType.EXPENSE;
     }
@@ -157,10 +260,12 @@ export class TransactionService {
    * @private
    */
   _calculateNormalizedAmount(amount, accountType, transactionType) {
+    // Credit cards: expenses are negative, payments are positive
     if (accountType === AccountType.CREDIT) {
       return transactionType === TransactionType.PAYMENT ? Math.abs(amount) : -Math.abs(amount);
     }
 
+    // Bank accounts: income is positive, expenses are negative
     if (accountType === AccountType.CHECKING || accountType === AccountType.SAVINGS) {
       return transactionType === TransactionType.INCOME ? Math.abs(amount) : -Math.abs(amount);
     }
