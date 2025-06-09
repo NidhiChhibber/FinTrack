@@ -10,12 +10,6 @@ dotenv.config();
 
 export class PlaidService {
   constructor() {
-    console.log('Plaid Config:', {
-      clientId: process.env.PLAID_CLIENT_ID ? 'SET' : 'MISSING',
-      secret: process.env.PLAID_SECRET ? 'SET' : 'MISSING', 
-      env: process.env.PLAID_ENV
-    });
-    
     this.plaidClient = new PlaidApi(new Configuration({
       basePath: PlaidEnvironments[process.env.PLAID_ENV || 'sandbox'],
       baseOptions: {
@@ -57,7 +51,6 @@ export class PlaidService {
    */
   async exchangePublicToken(publicToken, metadata, userId) {
   try {
-    console.log('Exchanging public token for user:', userId);
     
     // Exchange token
     const tokenResponse = await this.plaidClient.itemPublicTokenExchange({ 
@@ -101,7 +94,6 @@ export class PlaidService {
 
     // Get the created accounts
     const accounts = await this.accountRepo.findByPlaidItem(result.id);
-    console.log('Created accounts:', accounts.length);
 
     // Start transaction sync after longer delay to ensure accounts are ready
     setTimeout(async () => {

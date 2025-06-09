@@ -19,8 +19,6 @@ export const Accounts: React.FC = () => {
   };
 
   const handleAddAccount = () => {
-    // TODO: Implement add account functionality
-    console.log('Add account clicked');
   };
 
   if (accountsLoading || summaryLoading) {
@@ -110,7 +108,6 @@ export const Accounts: React.FC = () => {
               <AccountCard
                 key={account.id}
                 account={account}
-                onClick={() => console.log('Account clicked:', account.id)}
               />
             ))}
           </div>

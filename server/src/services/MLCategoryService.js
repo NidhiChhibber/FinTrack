@@ -20,13 +20,13 @@ export class MLCategoryService {
     try {
       const result = await this._callMLService('test health check', '');
       this.isModelReady = !result.error;
-      console.log('ML Model Health:', this.isModelReady ? '✅ Ready' : '❌ Not Ready');
+      console.log('ML Model Health:', this.isModelReady ? 'Ready' : 'Not Ready');
       if (result.error) {
         console.log('ML Error:', result.error);
       }
     } catch (error) {
       this.isModelReady = false;
-      console.log('ML Model Health: ❌ Error -', error.message);
+      console.log('ML Model Health: Error -', error.message);
     }
   }
 

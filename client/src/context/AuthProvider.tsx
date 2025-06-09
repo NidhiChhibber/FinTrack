@@ -47,15 +47,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const verifyToken = async (token: string) => {
-  console.log("[Auth] Verifying token:", token);
   try {
     const response = await fetch('/api/auth/verify', {
       headers: { Authorization: `Bearer ${token}` }
     });
 
-    console.log("[Auth] Verification response status:", response.status);
     const data = await response.json();
-    console.log("[Auth] Verification response data:", data);
 
     if (response.ok && data.user) {
       setUser(data.user);
@@ -64,7 +61,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setToken(null);
     }
   } catch (error) {
-    console.error('[Auth] Token verification error:', error);
     localStorage.removeItem('auth_token');
     setToken(null);
   } finally {
@@ -124,11 +120,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(null);
     setUser(null);
   };
-
-console.log("[AuthProvider] token:", token);
-console.log("[AuthProvider] user:", user);
-console.log("[AuthProvider] isAuthenticated:", !!token && !!user);
-console.log("[AuthProvider] isLoading:", isLoading);
+  
   return (
     <AuthContext.Provider value={{
       user,

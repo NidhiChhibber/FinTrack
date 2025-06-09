@@ -21,12 +21,8 @@ export class TransactionService {
    */
   async getTransactionsByUser(userId, filters = {}, pagination = {}) {
     try {
-      console.log('TransactionService.getTransactionsByUser called with:', { userId, filters, pagination });
-      
       const transactions = await this.transactionRepo.findByUser(userId, filters, pagination);
       const transactionDTOs = TransactionMapper.toDTOArray(transactions);
-      
-      console.log('TransactionService returning', transactionDTOs.length, 'transactions');
       return transactionDTOs;
     } catch (error) {
       console.error('Error in TransactionService.getTransactionsByUser:', error);
@@ -163,14 +159,10 @@ export class TransactionService {
         let confidence = 0.6; // Default for Plaid categories
         
         try {
-          console.log(`Predicting category for: ${plaidTx.name}`);
           const prediction = await this.mlService.predictCategory(
             plaidTx.name, 
             plaidTx.merchant_name
-          );
-          
-          console.log(`ML Prediction result:`, prediction);
-          
+          );          
           if (prediction.category !== 'Uncategorized' && !prediction.error) {
             category = prediction.category;
             categorySource = CategorySource.AI;

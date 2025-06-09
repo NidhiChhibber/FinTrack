@@ -276,8 +276,6 @@ export const Transactions: React.FC = () => {
               setEndDate(undefined);
               setSelectedAccountId(undefined);
               setSearchTerm('');
-            } else {
-              console.log('Connect account');
             }
           }}
         />
