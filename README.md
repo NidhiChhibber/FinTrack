@@ -81,9 +81,20 @@ npm run dev
 Create a `.env` file in `/server`:
 
 ```env
-PLAID_CLIENT_ID=your_plaid_client_id
-PLAID_SECRET=your_plaid_sandbox_secret
-JWT_SECRET=your_jwt_secret
+#Plaid
+PLAID_CLIENT_ID=
+PLAID_SECRET=
+PLAID_ENV=sandbox
+
+
+# Authentication
+JWT_SECRET=
+SESSION_SECRET=
+CLIENT_URL=http://localhost:5173
+
+# Google OAuth
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
 ```
 
 ## 🔒 Auth Flow
