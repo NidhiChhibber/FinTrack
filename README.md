@@ -152,6 +152,6 @@ const { data: transactions } = useTransactionsByDateRange(
 
 ## 👤 Author
 
-Built with by Divy Nidhi Chhibber
+Built by Divy Nidhi Chhibber
 
 > Empowering people to take control of their financial lives.
