@@ -31,5 +31,13 @@ coverage/
 .vite/
 .cache/
 
+# Java build artifacts
+server-java/target/
+server-java/data/
+server/target/
+server/data/
+
 # VS Code settings
 .vscode/
+server/.env
+server/.env.local

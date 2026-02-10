@@ -1,8 +1,9 @@
 // client/src/services/api/dashboard.ts - Fixed API paths
 import type { TransactionDTO, AccountDTO, AccountSummary } from '../../types';
+import { getAuthHeaders } from './authToken';
 
 class DashboardService {
-  private baseURL = 'http://localhost:3001';
+  private baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
   async getTransactions(userId: string, options: any = {}): Promise<TransactionDTO[]> {
     const params = new URLSearchParams();
@@ -11,14 +12,18 @@ class DashboardService {
     if (options.endDate) params.append('endDate', options.endDate);
     if (options.limit) params.append('limit', options.limit.toString());
     
-    const response = await fetch(`${this.baseURL}/api/transactions?${params}`);
+    const response = await fetch(`${this.baseURL}/api/transactions?${params}`, {
+      headers: await getAuthHeaders(),
+    });
     const data = await response.json();
     
     return Array.isArray(data.data) ? data.data : [];
   }
 
   async getAccounts(userId: string): Promise<AccountDTO[]> {
-    const response = await fetch(`${this.baseURL}/api/plaid/accounts/${userId}`);
+    const response = await fetch(`${this.baseURL}/api/plaid/accounts/${userId}`, {
+      headers: await getAuthHeaders(),
+    });
     const data = await response.json();
     
     return Array.isArray(data.data) ? data.data : [];
@@ -51,7 +56,7 @@ class DashboardService {
   async syncTransactions(userId: string) {
     const response = await fetch(`${this.baseURL}/api/plaid/sync_transactions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
       body: JSON.stringify({ userId })
     });
     const data = await response.json();

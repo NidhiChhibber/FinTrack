@@ -1,5 +1,6 @@
 // client/src/services/api/transactions.ts
 import type { TransactionDTO, TransactionFilters } from '../../types';
+import { getAuthHeaders } from './authToken';
 
 export interface TransactionsResponse {
   success: boolean;
@@ -13,7 +14,7 @@ export interface TransactionsResponse {
 }
 
 class TransactionsService {
-  private baseURL = 'http://localhost:3001';
+  private baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
   async getTransactions(filters: TransactionFilters = {}, pagination = { page: 1, limit: 50 }): Promise<TransactionsResponse> {
     const params = new URLSearchParams();
@@ -40,7 +41,9 @@ class TransactionsService {
     params.append('page', pagination.page.toString());
     params.append('limit', pagination.limit.toString());
 
-    const response = await fetch(`${this.baseURL}/api/transactions?${params}`);
+    const response = await fetch(`${this.baseURL}/api/transactions?${params}`, {
+      headers: await getAuthHeaders(),
+    });
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -60,6 +63,7 @@ class TransactionsService {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
+        ...(await getAuthHeaders()),
       },
       body: JSON.stringify({
         category,

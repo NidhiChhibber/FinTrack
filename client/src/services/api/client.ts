@@ -11,18 +11,24 @@ export interface ApiResponse<T = any> {
   };
 }
 
+import { getAuthHeaders } from './authToken';
+
 export class ApiClient {
-  private baseURL = 'http://localhost:3001';
+  private baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
   async get<T>(endpoint: string): Promise<ApiResponse<T>> {
-    const response = await fetch(`${this.baseURL}${endpoint}`);
+    const response = await fetch(`${this.baseURL}${endpoint}`, {
+      headers: {
+        ...(await getAuthHeaders()),
+      },
+    });
     return response.json();
   }
 
   async post<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
     const response = await fetch(`${this.baseURL}${endpoint}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
       body: data ? JSON.stringify(data) : undefined,
     });
     return response.json();
@@ -31,7 +37,7 @@ export class ApiClient {
   async put<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
     const response = await fetch(`${this.baseURL}${endpoint}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
       body: data ? JSON.stringify(data) : undefined,
     });
     return response.json();
@@ -40,7 +46,7 @@ export class ApiClient {
   async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
     const response = await fetch(`${this.baseURL}${endpoint}`, {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
     });
     return response.json();
   }

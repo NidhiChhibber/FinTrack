@@ -1,11 +1,11 @@
 // client/src/context/AuthProvider.tsx
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
 interface User {
   id: string;
   email: string;
   name: string;
-  username: string; // Add username field
+  username: string;
   avatar?: string;
 }
 
@@ -23,9 +23,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };
 
@@ -35,55 +33,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing token on app load
     const savedToken = localStorage.getItem('auth_token');
     if (savedToken) {
       setToken(savedToken);
-      // Verify token and get user info
-      verifyToken(savedToken);
+      void verifyToken(savedToken);
     } else {
       setIsLoading(false);
     }
   }, []);
 
-  const verifyToken = async (token: string) => {
-  try {
-    const response = await fetch('/api/auth/verify', {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+  const verifyToken = async (tokenToVerify: string) => {
+    try {
+      const response = await fetch('/api/auth/verify', {
+        headers: { Authorization: `Bearer ${tokenToVerify}` },
+      });
 
-    const data = await response.json();
+      const data = await response.json();
+      const userPayload = data.data || data.user;
 
-    if (response.ok && data.user) {
-      setUser(data.user);
-    } else {
+      if (response.ok && userPayload) {
+        setUser(userPayload);
+      } else {
+        localStorage.removeItem('auth_token');
+        setToken(null);
+      }
+    } catch {
       localStorage.removeItem('auth_token');
       setToken(null);
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    localStorage.removeItem('auth_token');
-    setToken(null);
-  } finally {
-    setIsLoading(false);
-  }
-};
-
+  };
 
   const login = async (username: string, password: string) => {
     const response = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify({ username, password }),
     });
 
-    if (!response.ok) {
-      throw new Error('Login failed');
-    }
-
     const data = await response.json();
-    
-    if (!data.success) {
-      throw new Error(data.error || 'Login failed');
+
+    if (!response.ok || !data.success) {
+      throw new Error(data?.error || 'Login failed');
     }
 
     const { token: newToken, user: newUser } = data.data;
@@ -96,17 +88,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const response = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, name, username })
+      body: JSON.stringify({ email, password, name, username }),
     });
 
-    if (!response.ok) {
-      throw new Error('Registration failed');
-    }
-
     const data = await response.json();
-    
-    if (!data.success) {
-      throw new Error(data.error || 'Registration failed');
+
+    if (!response.ok || !data.success) {
+      throw new Error(data?.error || 'Registration failed');
     }
 
     const { token: newToken, user: newUser } = data.data;
@@ -120,17 +108,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(null);
     setUser(null);
   };
-  
+
   return (
-    <AuthContext.Provider value={{
-      user,
-      token,
-      isLoading,
-      login,
-      register,
-      logout,
-      isAuthenticated: !!token && !!user
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        isLoading,
+        login,
+        register,
+        logout,
+        isAuthenticated: !!token && !!user,
+      }}
+    >
       {!isLoading && children}
     </AuthContext.Provider>
   );

@@ -5,10 +5,12 @@ import {
   CreditCard, 
   Receipt, 
   Settings, 
-  Wallet
+  Wallet,
+  LogOut
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { ThemeToggle } from '../common/ThemeToggle';
+import { useAuth0 } from '@auth0/auth0-react';
 
 interface NavItem {
   label: string;
@@ -46,6 +48,7 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ isMobile = false }) => {
   const location = useLocation();
+  const { logout } = useAuth0();
 
   const sidebarClasses = isMobile
     ? "bg-card border-t border-border p-2"
@@ -112,7 +115,34 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile = false }) => {
             </NavLink>
           );
         })}
+        {isMobile && (
+          <button
+            type="button"
+            onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
+            className={cn(
+              "flex items-center transition-colors duration-200",
+              "flex-col p-2 rounded-lg space-y-1 min-w-0 flex-1",
+              "text-muted-foreground hover:text-foreground hover:bg-accent"
+            )}
+          >
+            <LogOut className="w-5 h-5" />
+            <span className="text-xs text-center font-medium">Logout</span>
+          </button>
+        )}
       </nav>
+
+      {!isMobile && (
+        <div className="mt-6">
+          <button
+            type="button"
+            onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
+            className="w-full flex items-center space-x-3 p-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors duration-200"
+          >
+            <LogOut className="w-5 h-5" />
+            <span className="text-sm font-medium">Logout</span>
+          </button>
+        </div>
+      )}
     </aside>
   );
 };

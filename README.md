@@ -1,6 +1,6 @@
 # 💸 FinTrack - Personal Finance Tracker
 
-FinTrack is a full-stack personal finance tracker built with **React**, **Node.js**, **SQLite**, and **Plaid**. It allows users to link bank accounts, track income and expenses, categorize transactions (with AI-assisted predictions), and monitor net worth — all in a beautiful, secure, and extensible app.
+FinTrack is a full-stack personal finance tracker built with **React**, **Java (Spring Boot)**, **PostgreSQL**, and **Plaid**. It allows users to link bank accounts, sync transactions, and monitor account balances and net worth.
 
 ## 🚀 Features
 
@@ -17,11 +17,11 @@ FinTrack is a full-stack personal finance tracker built with **React**, **Node.j
 ## 🧱 Tech Stack
 
 * **Frontend**: React + TypeScript + Tailwind + ShadCN UI
-* **Backend**: Node.js + Express + SQLite + Sequelize
+* **Backend**: Java + Spring Boot + JPA
+* **Database**: PostgreSQL + Flyway
 * **Auth**: JWT + React Context
 * **Banking API**: Plaid
-* **ML Layer**: Python (invoked from Node using `child_process`)
-* **Tooling**: Vite, React Query Devtools, VSCode
+* **Tooling**: Vite, React Query Devtools, Cursor
 
 ## 📁 Project Structure
 
@@ -36,10 +36,8 @@ client/
 🔺🔊 App.tsx             # Main app entry
 
 server/
-🔺🔊 models/             # Sequelize models
-🔺🔊 routes/             # Auth, transactions, plaid APIs
-🔺🔊 ml/                 # Python ML script
-🔺🔊 server.js           # Express server entry
+🔺🔊 src/main/java/      # Spring Boot source
+🔺🔊 src/main/resources/ # application.properties + Flyway migrations
 ```
 
 ## 🧲 Running Locally
@@ -47,9 +45,10 @@ server/
 ### Prerequisites
 
 * Node.js ≥ 18
-* Python ≥ 3.8
-* SQLite installed (or use file-based DB)
-* Plaid developer (sandbox) credentials
+* Java 17+
+* Maven
+* Docker Desktop (for local Postgres)
+* Plaid developer credentials (Sandbox/Development/Production)
 
 ### Setup
 
@@ -63,9 +62,13 @@ cd fintrack
 2. **Install and run the backend**
 
 ```bash
+docker compose up -d
+
 cd server
-npm install
-npm run dev
+cp .env.example .env.local
+# fill in PLAID_CLIENT_ID / PLAID_SECRET / JWT_SECRET
+set -a && source .env.local && set +a
+mvn spring-boot:run
 ```
 
 3. **Install and run the frontend**
@@ -78,7 +81,7 @@ npm run dev
 
 4. **Environment Variables**
 
-Create a `.env` file in `/server`:
+Create a `server/.env.local` file (not committed). See `server/.env.example`.
 
 ```env
 #Plaid
@@ -89,12 +92,11 @@ PLAID_ENV=sandbox
 
 # Authentication
 JWT_SECRET=
-SESSION_SECRET=
-CLIENT_URL=http://localhost:5173
 
-# Google OAuth
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
+# Database (Postgres)
+DB_URL=jdbc:postgresql://localhost:5432/fintrack
+DB_USERNAME=fintrack
+DB_PASSWORD=fintrack_password
 ```
 
 ## 🔒 Auth Flow
@@ -105,10 +107,7 @@ GOOGLE_CLIENT_SECRET=
 
 ## 🧠 Machine Learning (Auto Categorization)
 
-* New transactions are categorized using a Python script
-* Users can manually update predicted categories
-* Feedback is stored and can later be used to improve the model
-* Node runs Python using `child_process.exec()`
+Planned.
 
 ## 🔌 API Endpoints
 

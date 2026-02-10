@@ -1,8 +1,9 @@
 // client/src/pages/Accounts.tsx
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Plus, CreditCard, Landmark, TrendingUp, RefreshCw } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useAccounts, useAccountSummary, useSyncTransactions } from '../hooks/useAccounts';
+import { usePlaidLink } from '../hooks/usePlaidLink';
 import { AccountSummaryCard } from '../components/accounts/AccountSummaryCard';
 import { AccountCard } from '../components/accounts/AccountCard';
 import { EmptyState } from '../components/common/EmptyState';
@@ -13,12 +14,19 @@ export const Accounts: React.FC = () => {
   const { data: accounts, isLoading: accountsLoading, error: accountsError } = useAccounts();
   const { data: summary, isLoading: summaryLoading } = useAccountSummary();
   const refreshAccounts = useSyncTransactions();
+  const { openPlaidLink, isLoading: plaidLoading, fetchLinkToken, ready } = usePlaidLink();
+
+  useEffect(() => {
+    fetchLinkToken();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleRefresh = () => {
-    refreshAccounts.mutate('custom_dnc_user'); // Use consistent user ID
+    refreshAccounts.mutate();
   };
 
   const handleAddAccount = () => {
+    openPlaidLink();
   };
 
   if (accountsLoading || summaryLoading) {
@@ -65,9 +73,9 @@ export const Accounts: React.FC = () => {
           <RefreshCw className={`w-4 h-4 mr-2 ${refreshAccounts.isPending ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
-        <Button onClick={handleAddAccount}>
+        <Button onClick={handleAddAccount} disabled={plaidLoading || !ready}>
           <Plus className="w-4 h-4 mr-2" />
-          Add Account
+          {plaidLoading ? 'Connecting...' : 'Add Account'}
         </Button>
       </PageHeader>
 
